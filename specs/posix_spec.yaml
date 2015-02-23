@@ -57,6 +57,7 @@ specify posix:
       badargs.diagnose (f, "pipeline_slurp (table, ?function)")
 
 
+# spawn's tests also cover execx
 - describe spawn:
   - before: f = posix.spawn
 
@@ -64,16 +65,41 @@ specify posix:
       badargs.diagnose (f, "spawn (string|table|function, ?string*)")
 
   - it spawns a command and can detect success:
-      expect (f ("true").to_equal (0))
+      expect (f ("true")).to_equal (0)
   - it can detect failure:
-      expect (f ("false").to_equal (1))
+      expect (f ("false")).to_equal (1)
   - it can pass a table of arguments:
-      expect (f ({"echo", "foo"}).to_equal(0))
+      expect (f ({"echo", "foo"})).to_equal(0)
   - it can pass a function:
       # FIXME: If the function body contains:
       # io.stdout.write ("hello")
       # then the specl results are printed twice; "hello" is not printed
-      expect (f (function () end).to_equal(0))
+      expect (f (function () end)).to_equal(0)
+
+- describe popen:
+  - before:
+      popen, pclose, read, BUFSIZE = posix.popen, posix.pclose, posix.read, posix.BUFSIZ
+  - context with bad arguments:
+      badargs.diagnose (popen, "pipeline (string|table|function, string, ?function)")
+  - it spawns a command and can read its output:
+      p = popen ({"echo", "foo"}, "r")
+      s = posix.read (p.fd, posix.BUFSIZ)
+      pclose (p)
+      expect (s).to_equal "foo"
+
+p = popen ({"wc"}, "w")
+posix.write (p.fd, "foo bar baz")
+pclose (p)
+
+- describe popen_pipeline:
+p = popen_pipeline (list {{"ls"}, {"wc"}, "wc -l"}, "r")
+s = posix.read (p.fd, posix.BUFSIZ)
+print (s)
+pclose (p)
+
+p = popen_pipeline (list {{"cat"}, {"wc"}}, "w")
+posix.write (p.fd, "foo bar baz")
+pclose (p)
 
 - describe timeradd:
   - before:
