@@ -365,9 +365,10 @@ if _DEBUG ~= false then
     end
     checkstring ("popen", 2, argt[2])
     if argt[3] ~= nil and type (argt[3]) ~= "function" then
-      argtypeerror ("popen", 3, "function or nil", pipe_fn)
+      argtypeerror ("popen", 3, "function or nil", argt[3])
     end
-    return popen (...)
+    if #argt > 3 then toomanyargerror ("popen", 3, #argt) end
+    return popen (task, ...)
   end
 else
   M.popen = popen
@@ -383,11 +384,12 @@ end
 -- @treturn pfd pipeline object
 
 local function popen_pipeline (tasks, mode, pipe_fn)
+  local first, from, to, inc = 1, 2, #tasks, 1
   if mode == "w" then
-    tasks = std.ireverse (tasks)
+    first, from, to, inc = #tasks, #tasks - 1, 1, -1
   end
-  local pfd = popen (tasks[1], mode, pipe_fn)
-  for i = 2, #tasks do
+  local pfd = popen (tasks[first], mode, pipe_fn)
+  for i = from, to, inc do
     local pfd_next = popen (function (fd, in_fd, out_fd)
                               move_fd (pfd.fd, in_fd)
                               _exit (execx (tasks[i]))
@@ -409,6 +411,7 @@ if _DEBUG ~= false then
     if argt[3] ~= nil and type (argt[3]) ~= "function" then
       argtypeerror ("popen_pipeline", 3, "function or nil", argt[3])
     end
+    if #argt > 3 then toomanyargerror ("popen_pipeline", 3, #argt) end
     return popen_pipeline (...)
   end
 else

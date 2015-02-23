@@ -78,28 +78,41 @@ specify posix:
 
 - describe popen:
   - before:
-      popen, pclose, read, BUFSIZE = posix.popen, posix.pclose, posix.read, posix.BUFSIZ
+      popen, pclose = posix.popen, posix.pclose
+      read, write, BUFSIZE = posix.read, posix.write, posix.BUFSIZ
   - context with bad arguments:
-      badargs.diagnose (popen, "pipeline (string|table|function, string, ?function)")
-  - it spawns a command and can read its output:
+      badargs.diagnose (popen, "popen (string|table|function, string, ?function)")
+
+  - it spawns a command and reads its output:
       p = popen ({"echo", "foo"}, "r")
       s = posix.read (p.fd, posix.BUFSIZ)
       pclose (p)
-      expect (s).to_equal "foo"
+      expect (s).to_equal "foo\n"
 
-p = popen ({"wc"}, "w")
-posix.write (p.fd, "foo bar baz")
-pclose (p)
+  - it spawns a command and writes its input:
+      p = popen ({"wc"}, "w")
+      s = "foo bar baz"
+      expect (write (p.fd, s)).to_equal (#s)
+      pclose (p)
 
 - describe popen_pipeline:
-p = popen_pipeline (list {{"ls"}, {"wc"}, "wc -l"}, "r")
-s = posix.read (p.fd, posix.BUFSIZ)
-print (s)
-pclose (p)
+  - before:
+      popen_pipeline, pclose = posix.popen_pipeline, posix.pclose
+      read, write, BUFSIZE = posix.read, posix.write, posix.BUFSIZ
+  - context with bad arguments:
+      badargs.diagnose (popen_pipeline, "popen_pipeline (table, string, ?function)")
 
-p = popen_pipeline (list {{"cat"}, {"wc"}}, "w")
-posix.write (p.fd, "foo bar baz")
-pclose (p)
+  - it spawns a pipeline and reads its output:
+      p = popen_pipeline ({{"echo", "foo", "bar", "baz"}, {"wc"}, "wc -l"}, "r")
+      expect (read (p.fd, posix.BUFSIZ)).to_equal ("1\n")
+      pclose (p)
+
+  - it spawns a pipeline and writes its input:
+      s = "foo bar baz"
+      p = popen_pipeline ({{"cat"}, {"wc"}}, "w")
+      expect (write (p.fd, s)).to_equal (#s)
+      pclose (p)
+
 
 - describe timeradd:
   - before:
